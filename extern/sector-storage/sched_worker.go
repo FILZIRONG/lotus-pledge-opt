@@ -436,6 +436,9 @@ func (sw *schedWorker) startProcessingTask(taskDone chan struct{}, req *workerRe
 			}
 
 			// Do the work!
+			//Begin: added by yankai
+			log.Infof("StartProcessingTask in schedWorker: Worker {%+v}; WorkerInfo {%+v}; ActiveWindows {%+v}; WorkerID {%+v}; Sector {%+v}", w.workerRpc, w.info, w.activeWindows, sw.wid, req.sector)
+			//End: added by yankai
 			err = req.work(req.ctx, sh.workTracker.worker(sw.wid, w.workerRpc))
 
 			select {

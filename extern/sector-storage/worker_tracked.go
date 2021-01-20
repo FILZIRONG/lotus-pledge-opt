@@ -100,18 +100,30 @@ type trackedWorker struct {
 }
 
 func (t *trackedWorker) SealPreCommit1(ctx context.Context, sector storage.SectorRef, ticket abi.SealRandomness, pieces []abi.PieceInfo) (storiface.CallID, error) {
+	//Begin: added by yankai
+	log.Infof("PreCommit1 in trackedWorker: Sector {%+v}; WorkerID {%+v}; Running {%+v}", sector, t.wid, t.tracker.running)
+	//End: added by yankai
 	return t.tracker.track(t.wid, sector, sealtasks.TTPreCommit1)(t.Worker.SealPreCommit1(ctx, sector, ticket, pieces))
 }
 
 func (t *trackedWorker) SealPreCommit2(ctx context.Context, sector storage.SectorRef, pc1o storage.PreCommit1Out) (storiface.CallID, error) {
+	//Begin: added by yankai
+	log.Infof("PreCommit2 in trackedWorker: Sector {%+v}; WorkerID {%+v}; Running {%+v}", sector, t.wid, t.tracker.running)
+	//End: added by yankai
 	return t.tracker.track(t.wid, sector, sealtasks.TTPreCommit2)(t.Worker.SealPreCommit2(ctx, sector, pc1o))
 }
 
 func (t *trackedWorker) SealCommit1(ctx context.Context, sector storage.SectorRef, ticket abi.SealRandomness, seed abi.InteractiveSealRandomness, pieces []abi.PieceInfo, cids storage.SectorCids) (storiface.CallID, error) {
+	//Begin: added by yankai
+	log.Infof("Commit1 in trackedWorker: Sector {%+v}; WorkerID {%+v}; Running {%+v}", sector, t.wid, t.tracker.running)
+	//End: added by yankai
 	return t.tracker.track(t.wid, sector, sealtasks.TTCommit1)(t.Worker.SealCommit1(ctx, sector, ticket, seed, pieces, cids))
 }
 
 func (t *trackedWorker) SealCommit2(ctx context.Context, sector storage.SectorRef, c1o storage.Commit1Out) (storiface.CallID, error) {
+	//Begin: added by yankai
+	log.Infof("Commit2 in trackedWorker: Sector {%+v}; WorkerID {%+v}; Running {%+v}", sector, t.wid, t.tracker.running)
+	//End: added by yankai
 	return t.tracker.track(t.wid, sector, sealtasks.TTCommit2)(t.Worker.SealCommit2(ctx, sector, c1o))
 }
 

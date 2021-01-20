@@ -339,6 +339,9 @@ func (l *LocalWorker) SealPreCommit1(ctx context.Context, sector storage.SectorR
 			return nil, err
 		}
 
+		//Begin: added by yankai
+		log.Infof("PreCommit1 in Worker: Sector {%+v}; CallID {%+v}", sector, ci)
+		//End: added by yankai
 		return sb.SealPreCommit1(ctx, sector, ticket, pieces)
 	})
 }
@@ -350,6 +353,9 @@ func (l *LocalWorker) SealPreCommit2(ctx context.Context, sector storage.SectorR
 	}
 
 	return l.asyncCall(ctx, sector, SealPreCommit2, func(ctx context.Context, ci storiface.CallID) (interface{}, error) {
+		//Begin: added by yankai
+		log.Infof("PreCommit2 in Worker: Sector {%+v}; CallID {%+v}", sector, ci)
+		//End: added by yankai
 		return sb.SealPreCommit2(ctx, sector, phase1Out)
 	})
 }
@@ -361,6 +367,9 @@ func (l *LocalWorker) SealCommit1(ctx context.Context, sector storage.SectorRef,
 	}
 
 	return l.asyncCall(ctx, sector, SealCommit1, func(ctx context.Context, ci storiface.CallID) (interface{}, error) {
+		//Begin: added by yankai
+		log.Infof("Commit1 in Worker: Sector {%+v}; CallID {%+v}", sector, ci)
+		//End: added by yankai
 		return sb.SealCommit1(ctx, sector, ticket, seed, pieces, cids)
 	})
 }
@@ -372,6 +381,9 @@ func (l *LocalWorker) SealCommit2(ctx context.Context, sector storage.SectorRef,
 	}
 
 	return l.asyncCall(ctx, sector, SealCommit2, func(ctx context.Context, ci storiface.CallID) (interface{}, error) {
+		//Begin: added by yankai
+		log.Infof("Commit2 in Worker: Sector {%+v}; CallID {%+v}", sector, ci)
+		//End: added by yankai
 		return sb.SealCommit2(ctx, sector, phase1Out)
 	})
 }

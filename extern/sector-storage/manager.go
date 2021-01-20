@@ -188,6 +188,9 @@ func (m *Manager) AddLocalStorage(ctx context.Context, path string) error {
 }
 
 func (m *Manager) AddWorker(ctx context.Context, w Worker) error {
+	//Begin: added by yankai
+	log.Infof("AddWorker in Manager: Worker {%+v}", w)
+	//End: added by yankai
 	return m.sched.runWorker(ctx, w)
 }
 
@@ -380,6 +383,9 @@ func (m *Manager) SealPreCommit1(ctx context.Context, sector storage.SectorRef, 
 
 	selector := newAllocSelector(m.index, storiface.FTCache|storiface.FTSealed, storiface.PathSealing)
 
+	//Begin: added by yankai
+	log.Infof("PreCommit1 in Manager: Sector {%+v}; WorkID {%+v}; Wait {%+v}; OpenWindows {%+v}; SchedQueue {%+v}", sector, wk, wait, m.sched.openWindows, m.sched.schedQueue)
+	//End: added by yankai
 	err = m.sched.Schedule(ctx, sector, sealtasks.TTPreCommit1, selector, m.schedFetch(sector, storiface.FTUnsealed, storiface.PathSealing, storiface.AcquireMove), func(ctx context.Context, w Worker) error {
 		err := m.startWork(ctx, w, wk)(w.SealPreCommit1(ctx, sector, ticket, pieces))
 		if err != nil {
@@ -429,6 +435,9 @@ func (m *Manager) SealPreCommit2(ctx context.Context, sector storage.SectorRef, 
 
 	selector := newExistingSelector(m.index, sector.ID, storiface.FTCache|storiface.FTSealed, true)
 
+	//Begin: added by yankai
+	log.Infof("PreCommit2 in Manager: Sector {%+v}; WorkID {%+v}; Wait {%+v}; OpenWindows {%+v}; SchedQueue {%+v}", sector, wk, wait, m.sched.openWindows, m.sched.schedQueue)
+	//End: added by yankai
 	err = m.sched.Schedule(ctx, sector, sealtasks.TTPreCommit2, selector, m.schedFetch(sector, storiface.FTCache|storiface.FTSealed, storiface.PathSealing, storiface.AcquireMove), func(ctx context.Context, w Worker) error {
 		err := m.startWork(ctx, w, wk)(w.SealPreCommit2(ctx, sector, phase1Out))
 		if err != nil {
@@ -481,6 +490,9 @@ func (m *Manager) SealCommit1(ctx context.Context, sector storage.SectorRef, tic
 	// generally very cheap / fast, and transferring data is not worth the effort
 	selector := newExistingSelector(m.index, sector.ID, storiface.FTCache|storiface.FTSealed, false)
 
+	//Begin: added by yankai
+	log.Infof("Commit1 in Manager: Sector {%+v}; WorkID {%+v}; Wait {%+v}; OpenWindows {%+v}; SchedQueue {%+v}", sector, wk, wait, m.sched.openWindows, m.sched.schedQueue)
+	//End: added by yankai
 	err = m.sched.Schedule(ctx, sector, sealtasks.TTCommit1, selector, m.schedFetch(sector, storiface.FTCache|storiface.FTSealed, storiface.PathSealing, storiface.AcquireMove), func(ctx context.Context, w Worker) error {
 		err := m.startWork(ctx, w, wk)(w.SealCommit1(ctx, sector, ticket, seed, pieces, cids))
 		if err != nil {
@@ -523,6 +535,9 @@ func (m *Manager) SealCommit2(ctx context.Context, sector storage.SectorRef, pha
 
 	selector := newTaskSelector()
 
+	//Begin: added by yankai
+	log.Infof("Commit2 in Manager: Sector {%+v}; WorkID {%+v}; Wait {%+v}; OpenWindows {%+v}; SchedQueue {%+v}", sector, wk, wait, m.sched.openWindows, m.sched.schedQueue)
+	//End: added by yankai
 	err = m.sched.Schedule(ctx, sector, sealtasks.TTCommit2, selector, schedNop, func(ctx context.Context, w Worker) error {
 		err := m.startWork(ctx, w, wk)(w.SealCommit2(ctx, sector, phase1Out))
 		if err != nil {

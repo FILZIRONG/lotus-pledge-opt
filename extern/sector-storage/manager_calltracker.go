@@ -214,6 +214,9 @@ func (m *Manager) startWork(ctx context.Context, w Worker, wk WorkID) func(callI
 
 		m.callToWork[callID] = wk
 
+		//Begin: added by yankai
+		log.Infof("StarWork in Manager: Worker {%+v}; WorkID {%+v}; CallID {%+v}", w, wk, callID)
+		//End: added by yankai
 		return nil
 	}
 }

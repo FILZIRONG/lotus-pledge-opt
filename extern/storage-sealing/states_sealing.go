@@ -156,6 +156,9 @@ func (m *Sealing) handlePreCommit1(ctx statemachine.Context, sector SectorInfo) 
 		return ctx.Send(SectorSealPreCommit1Failed{xerrors.Errorf("seal pre commit(1) failed: %w", err)})
 	}
 
+	//Begin: added by yankai
+	log.Infof("PreCommit1 in Sealing: Sector {%+v}; Addr {%+v}", sector, m.maddr)
+	//End: added by yankai
 	return ctx.Send(SectorPreCommit1{
 		PreCommit1Out: pc1o,
 	})
@@ -171,6 +174,9 @@ func (m *Sealing) handlePreCommit2(ctx statemachine.Context, sector SectorInfo) 
 		return ctx.Send(SectorSealPreCommit1Failed{xerrors.Errorf("seal pre commit(2) returned undefined CommD")})
 	}
 
+	//Begin: added by yankai
+	log.Infof("PreCommit2 in Sealing: Sector {%+v}; CID {%+v}; Addr {%+v}", sector, cids, m.maddr)
+	//End: added by yankai
 	return ctx.Send(SectorPreCommit2{
 		Unsealed: cids.Unsealed,
 		Sealed:   cids.Sealed,
@@ -397,11 +403,18 @@ func (m *Sealing) handleCommitting(ctx statemachine.Context, sector SectorInfo) 
 		Unsealed: *sector.CommD,
 		Sealed:   *sector.CommR,
 	}
+
+	//Begin: added by yankai
+	log.Infof("Commit1 in Sealing: Sector {%+v}; CID {%+v}; Addr {%+v}", sector, cids, m.maddr)
+	//End: added by yankai
 	c2in, err := m.sealer.SealCommit1(sector.sealingCtx(ctx.Context()), m.minerSector(sector.SectorType, sector.SectorNumber), sector.TicketValue, sector.SeedValue, sector.pieceInfos(), cids)
 	if err != nil {
 		return ctx.Send(SectorComputeProofFailed{xerrors.Errorf("computing seal proof failed(1): %w", err)})
 	}
 
+	//Begin: added by yankai
+	log.Infof("Commit2 in Sealing: Sector {%+v}; CID {%+v}; Addr {%+v}", sector, cids, m.maddr)
+	//End: added by yankai
 	proof, err := m.sealer.SealCommit2(sector.sealingCtx(ctx.Context()), m.minerSector(sector.SectorType, sector.SectorNumber), c2in)
 	if err != nil {
 		return ctx.Send(SectorComputeProofFailed{xerrors.Errorf("computing seal proof failed(2): %w", err)})

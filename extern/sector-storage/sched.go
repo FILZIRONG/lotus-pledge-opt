@@ -358,6 +358,9 @@ func (sh *scheduler) trySched() {
 		return
 	}
 
+	//Begin: added by yankai
+	log.Infof("Before trySched in scheduler: Windows {%+v}; Queue {%+v}; Running {%+v}; Workers {%+v}", sh.openWindows, sh.schedQueue, sh.workTracker.running, sh.workers)
+	//End: added by yankai
 	windows := make([]schedWindow, windowsLen)
 	acceptableWindows := make([][]int, queuneLen)
 
@@ -533,6 +536,10 @@ func (sh *scheduler) trySched() {
 	}
 
 	sh.openWindows = newOpenWindows
+
+	//Begin: added by yankai
+	log.Infof("After trySched in scheduler: Windows {%+v}; Queue {%+v}; Running {%+v}; Workers {%+v}", sh.openWindows, sh.schedQueue, sh.workTracker.running, sh.workers)
+	//End: added by yankai
 }
 
 func (sh *scheduler) schedClose() {
