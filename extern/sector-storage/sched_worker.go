@@ -2,6 +2,8 @@ package sectorstorage
 
 import (
 	"context"
+	"github.com/filecoin-project/lotus/extern/sector-storage/sealtasks"
+	"github.com/filecoin-project/specs-storage/storage"
 	"time"
 
 	"golang.org/x/xerrors"
@@ -222,7 +224,24 @@ func (sw *schedWorker) checkSession(ctx context.Context) bool {
 			case w := <-sw.scheduledWindows:
 				// was in flight when initially disabled, return
 				sw.worker.wndLk.Lock()
-				sw.worker.activeWindows = append(sw.worker.activeWindows, w)
+				//Begin: modified by yankai for 优化扇区封装流程，保证P1,P2和C1由同一主机处理（或Worker）
+				handledSecRefs := sw.sched.handledSector
+				refs, ok := handledSecRefs[sw.worker.info.Hostname]
+				// TODO 查看同一个窗口的request是否属于同一
+				for _, req := range w.todo {
+					if sealtasks.TTPreCommit1 == req.taskType {
+						sw.worker.activeWindows = append(sw.worker.activeWindows, w)
+						break
+					} else {
+						if ok {
+							_, ok = refs[req.sector.ID.Number.String()]
+							if ok {
+								sw.worker.activeWindows = append(sw.worker.activeWindows, w)
+							}
+						}
+					}
+				}
+				//Begin: modified by yankai for 优化扇区封装流程，保证P1,P2和C1由同一主机处理（或Worker）
 				sw.worker.wndLk.Unlock()
 
 				if err := sw.disable(ctx); err != nil {
@@ -441,6 +460,23 @@ func (sw *schedWorker) startProcessingTask(taskDone chan struct{}, req *workerRe
 			log.Infof("StartProcessingTask in schedWorker: Worker {%+v}; WorkerInfo {%+v}; ActiveWindows {%+v}; WorkerID {%+v}; Sector {%+v}", w.workerRpc, w.info, w.activeWindows, sw.wid, req.sector)
 			//End: added by yankai
 			err = req.work(req.ctx, sh.workTracker.worker(sw.wid, w.workerRpc))
+
+			//Begin: add by yankai for 优化扇区封装流程，保证P1,P2和C1由同一主机处理（或Worker）
+			// 记录主机处理的扇区信息
+			handledSectors, ok := sh.handledSector[sw.worker.info.Hostname]
+			if !ok {
+				handledSectors = make(map[string]storage.SectorRef)
+			}
+
+			_, ok = handledSectors[req.sector.ID.Number.String()]
+			if sealtasks.TTCommit1 != req.taskType { // 如果是C1就不用再记录
+				if !ok {
+					handledSectors[req.sector.ID.Number.String()] = req.sector
+				}
+			} else {	// C1执行后不需要再记录状态，可清楚该内容
+				delete(handledSectors, req.sector.ID.Number.String())
+			}
+			//END: add by yankai for 优化扇区封装流程，保证P1,P2和C1由同一主机处理（或Worker）
 
 			select {
 			case req.ret <- workerResponse{err: err}:

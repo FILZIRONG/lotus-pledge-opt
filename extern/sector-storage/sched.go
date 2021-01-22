@@ -71,6 +71,11 @@ type scheduler struct {
 	closing  chan struct{}
 	closed   chan struct{}
 	testSync chan struct{} // used for testing
+
+	//Begin: add by yankai for 优化扇区封装流程，保证P1,P2和C1由同一主机处理（或Worker）
+	// 如果要实现扇区封装只能由一个worker完成，可在schedWorker中记录所有处理过的sector ID
+	handledSector	map[string]map[string]storage.SectorRef		// 维护主机名及改主机处理的sector
+	//End: add by yankai for 优化扇区封装流程，保证P1,P2和C1由同一主机处理（或Worker）
 }
 
 type workerHandle struct {
