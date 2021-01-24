@@ -167,6 +167,10 @@ func newScheduler() *scheduler {
 
 		closing: make(chan struct{}),
 		closed:  make(chan struct{}),
+
+		//Begin: add by yankai for 优化扇区封装流程，保证P1,P2和C1由同一主机处理（或Worker）
+		handledSector: make(map[string]map[string]storage.SectorRef),
+		//End: add by yankai for 优化扇区封装流程，保证P1,P2和C1由同一主机处理（或Worker）
 	}
 }
 
@@ -424,6 +428,33 @@ func (sh *scheduler) trySched() {
 				return
 			}
 
+			//Begin: modified by yankai for 优化扇区封装流程，保证P1,P2和C1由同一主机处理（或Worker）
+			// 确保所有的task对应的窗口都在同一主机上
+			if task.taskType != sealtasks.TTCommit2 {
+				suitableWindows := make([]int, len(acceptableWindows[sqi]))
+				for _, wnd := range acceptableWindows[sqi] {
+					wid := sh.openWindows[wnd].worker
+					worker := sh.workers[wid]
+					sectors, ok := sh.handledSector[worker.info.Hostname]
+					if !ok {
+						continue
+					}
+
+					_, ok = sectors[task.sector.ID.Number.String()]
+					if !ok {
+						continue
+					}
+					suitableWindows = append(suitableWindows, wnd)
+				}
+
+				// 如果
+				if len(suitableWindows) > 0 {
+					acceptableWindows[sqi] = acceptableWindows[sqi][0:0]
+					acceptableWindows[sqi] = append(acceptableWindows[sqi], suitableWindows...)
+				}
+			}
+			//End: modified by yankai for 优化扇区封装流程，保证P1,P2和C1由同一主机处理（或Worker）
+
 			// Pick best worker (shuffle in case some workers are equally as good)
 			rand.Shuffle(len(acceptableWindows[sqi]), func(i, j int) {
 				acceptableWindows[sqi][i], acceptableWindows[sqi][j] = acceptableWindows[sqi][j], acceptableWindows[sqi][i] // nolint:scopelint
@@ -484,6 +515,20 @@ func (sh *scheduler) trySched() {
 			//  workerHandle.utilization + windows[wnd].allocated.utilization (workerHandle.utilization is used in all
 			//  task selectors, but not in the same way, so need to figure out how to do that in a non-O(n^2 way), and
 			//  without additional network roundtrips (O(n^2) could be avoided by turning acceptableWindows.[] into heaps))
+
+			//Begin: modified by yankai for 优化扇区封装流程，保证P1,P2和C1由同一主机处理（或Worker）
+			// 确保同一窗口中的任务都属于同一个扇区
+			//isSameSector := true
+			//for _, req := range windows[wnd].todo {
+			//	if req.sector.ID.Number.String() != task.sector.ID.Number.String() {
+			//		isSameSector = false
+			//	}
+			//}
+			//
+			//if !isSameSector {
+			//	continue
+			//}
+			//End: modified by yankai for 优化扇区封装流程，保证P1,P2和C1由同一主机处理（或Worker）
 
 			selectedWindow = wnd
 			break
