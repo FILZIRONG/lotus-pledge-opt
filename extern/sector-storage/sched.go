@@ -431,7 +431,7 @@ func (sh *scheduler) trySched() {
 			//Begin: modified by yankai for 优化扇区封装流程，保证P1,P2和C1由同一主机处理（或Worker）
 			// 确保所有的task对应的窗口都在同一主机上
 			if task.taskType != sealtasks.TTCommit2 {
-				suitableWindows := make([]int, len(acceptableWindows[sqi]))
+				suitableWindows := make([]int, 0)
 				for _, wnd := range acceptableWindows[sqi] {
 					wid := sh.openWindows[wnd].worker
 					worker := sh.workers[wid]
@@ -447,9 +447,8 @@ func (sh *scheduler) trySched() {
 					suitableWindows = append(suitableWindows, wnd)
 				}
 
-				// 如果
 				if len(suitableWindows) > 0 {
-					acceptableWindows[sqi] = acceptableWindows[sqi][0:0]
+					acceptableWindows[sqi] = make([]int, 0)
 					acceptableWindows[sqi] = append(acceptableWindows[sqi], suitableWindows...)
 				}
 			}
@@ -522,6 +521,7 @@ func (sh *scheduler) trySched() {
 			//for _, req := range windows[wnd].todo {
 			//	if req.sector.ID.Number.String() != task.sector.ID.Number.String() {
 			//		isSameSector = false
+			//		break
 			//	}
 			//}
 			//

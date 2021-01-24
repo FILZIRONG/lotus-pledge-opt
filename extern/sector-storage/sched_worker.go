@@ -462,14 +462,22 @@ func (sw *schedWorker) startProcessingTask(taskDone chan struct{}, req *workerRe
 				sh.handledSector[sw.worker.info.Hostname] = make(map[string]storage.SectorRef)
 			}
 
-			_, ok = sh.handledSector[sw.worker.info.Hostname][req.sector.ID.Number.String()]
 			if sealtasks.TTCommit2 != req.taskType { // 如果是C2就不用再记录
-				if !ok {
+				hasSaved := false
+				for _, sectors := range sh.handledSector {
+					if _, ok := sectors[req.sector.ID.Number.String()]; ok {
+						hasSaved = true
+						break
+					}
+				}
+
+				if !hasSaved {
 					sh.handledSector[sw.worker.info.Hostname][req.sector.ID.Number.String()] = req.sector
 				}
-			} else {	// C2不需要再记录状态，可清除该内容
+			} else {
 				delete(sh.handledSector[sw.worker.info.Hostname], req.sector.ID.Number.String())
 			}
+			log.Infof("After do work: handledSectors {%+v}; Request {%+v} ", sh.handledSector, req)
 			//END: add by yankai for 优化扇区封装流程，保证P1,P2和C1由同一主机处理（或Worker）
 
 			select {
