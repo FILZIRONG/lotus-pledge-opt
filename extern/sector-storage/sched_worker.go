@@ -462,7 +462,7 @@ func (sw *schedWorker) startProcessingTask(taskDone chan struct{}, req *workerRe
 				sh.handledSector[sw.worker.info.Hostname] = make(map[string]storage.SectorRef)
 			}
 
-			if sealtasks.TTCommit2 != req.taskType { // 如果是C2就不用再记录
+			if sealtasks.TTCommit1 == req.taskType || sealtasks.TTPreCommit1 == req.taskType || sealtasks.TTPreCommit2 == req.taskType { // 如果是C2就不用再记录
 				hasSaved := false
 				for _, sectors := range sh.handledSector {
 					if _, ok := sectors[req.sector.ID.Number.String()]; ok {
