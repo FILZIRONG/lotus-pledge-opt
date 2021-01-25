@@ -441,8 +441,7 @@ func (sh *scheduler) trySched() {
 					}
 
 					_, ok = sectors[task.sector.ID.Number.String()]
-					if ok {
-					//if !ok {
+					if !ok {
 						continue
 					}
 					suitableWindows = append(suitableWindows, wnd)
@@ -515,21 +514,6 @@ func (sh *scheduler) trySched() {
 			//  workerHandle.utilization + windows[wnd].allocated.utilization (workerHandle.utilization is used in all
 			//  task selectors, but not in the same way, so need to figure out how to do that in a non-O(n^2 way), and
 			//  without additional network roundtrips (O(n^2) could be avoided by turning acceptableWindows.[] into heaps))
-
-			//Begin: modified by yankai for 优化扇区封装流程，保证P1,P2和C1由同一主机处理（或Worker）
-			// 确保同一窗口中的任务都属于同一个扇区
-			//isSameSector := true
-			//for _, req := range windows[wnd].todo {
-			//	if req.sector.ID.Number.String() != task.sector.ID.Number.String() {
-			//		isSameSector = false
-			//		break
-			//	}
-			//}
-			//
-			//if !isSameSector {
-			//	continue
-			//}
-			//End: modified by yankai for 优化扇区封装流程，保证P1,P2和C1由同一主机处理（或Worker）
 
 			selectedWindow = wnd
 			break

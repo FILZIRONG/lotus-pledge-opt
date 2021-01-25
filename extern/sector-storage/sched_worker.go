@@ -224,17 +224,6 @@ func (sw *schedWorker) checkSession(ctx context.Context) bool {
 			case w := <-sw.scheduledWindows:
 				// was in flight when initially disabled, return
 				sw.worker.wndLk.Lock()
-				//Begin: modified by yankai for 优化扇区封装流程，保证P1,P2和C1由同一主机处理（或Worker）
-				//handledSecRefs := sw.sched.handledSector
-				//refs, ok := handledSecRefs[sw.worker.info.Hostname]
-				//if ok {
-				//	_, ok = refs[w.todo[0].sector.ID.Number.String()]
-				//	if ok {
-				//		sw.worker.activeWindows = append(sw.worker.activeWindows, w)
-				//		break
-				//	}
-				//}
-				//End: modified by yankai for 优化扇区封装流程，保证P1,P2和C1由同一主机处理（或Worker）
 				sw.worker.activeWindows = append(sw.worker.activeWindows, w)
 				sw.worker.wndLk.Unlock()
 
