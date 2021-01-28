@@ -81,7 +81,7 @@ func (sb *Sealer) AddPiece(ctx context.Context, sector storage.SectorRef, existi
 	}()
 
 	//Begin: added by yankai
-	log.Infof("Call acquire sector in AddPiece: Sector {%+v}; WorkerID {%+v}; Running {%+v}", sector)
+	log.Infof("Call acquire sector in AddPiece: Sector {%+v}", sector)
 	//End: added by yankai
 	var stagedPath storiface.SectorPaths
 	if len(existingPieceSizes) == 0 {
@@ -406,7 +406,7 @@ func (sb *Sealer) UnsealPiece(ctx context.Context, sector storage.SectorRef, off
 
 func (sb *Sealer) ReadPiece(ctx context.Context, writer io.Writer, sector storage.SectorRef, offset storiface.UnpaddedByteIndex, size abi.UnpaddedPieceSize) (bool, error) {
 	//Begin: added by yankai
-	log.Infof("Call acquire sector in ReadPiece: Sector {%+v}; WorkerID {%+v}; Running {%+v}", sector)
+	log.Infof("Call acquire sector in ReadPiece: Sector {%+v}", sector)
 	//End: added by yankai
 	path, done, err := sb.sectors.AcquireSector(ctx, sector, storiface.FTUnsealed, storiface.FTNone, storiface.PathStorage)
 	if err != nil {
@@ -465,7 +465,7 @@ func (sb *Sealer) ReadPiece(ctx context.Context, writer io.Writer, sector storag
 
 func (sb *Sealer) SealPreCommit1(ctx context.Context, sector storage.SectorRef, ticket abi.SealRandomness, pieces []abi.PieceInfo) (out storage.PreCommit1Out, err error) {
 	//Begin: added by yankai
-	log.Infof("Call acquire sector in PreCommit1: Sector {%+v}; WorkerID {%+v}; Running {%+v}", sector)
+	log.Infof("Call acquire sector in PreCommit1: Sector {%+v}", sector)
 	//End: added by yankai
 	paths, done, err := sb.sectors.AcquireSector(ctx, sector, storiface.FTUnsealed, storiface.FTSealed|storiface.FTCache, storiface.PathSealing)
 	if err != nil {
@@ -529,7 +529,7 @@ func (sb *Sealer) SealPreCommit1(ctx context.Context, sector storage.SectorRef, 
 
 func (sb *Sealer) SealPreCommit2(ctx context.Context, sector storage.SectorRef, phase1Out storage.PreCommit1Out) (storage.SectorCids, error) {
 	//Begin: added by yankai
-	log.Infof("Call acquire sector in PreCommit2: Sector {%+v}; WorkerID {%+v}; Running {%+v}", sector)
+	log.Infof("Call acquire sector in PreCommit2: Sector {%+v}", sector)
 	//End: added by yankai
 	paths, done, err := sb.sectors.AcquireSector(ctx, sector, storiface.FTSealed|storiface.FTCache, 0, storiface.PathSealing)
 	if err != nil {
@@ -550,7 +550,7 @@ func (sb *Sealer) SealPreCommit2(ctx context.Context, sector storage.SectorRef, 
 
 func (sb *Sealer) SealCommit1(ctx context.Context, sector storage.SectorRef, ticket abi.SealRandomness, seed abi.InteractiveSealRandomness, pieces []abi.PieceInfo, cids storage.SectorCids) (storage.Commit1Out, error) {
 	//Begin: added by yankai
-	log.Infof("Call acquire sector in Commit1: Sector {%+v}; WorkerID {%+v}; Running {%+v}", sector)
+	log.Infof("Call acquire sector in Commit1: Sector {%+v}", sector)
 	//End: added by yankai
 	paths, done, err := sb.sectors.AcquireSector(ctx, sector, storiface.FTSealed|storiface.FTCache, 0, storiface.PathSealing)
 	if err != nil {

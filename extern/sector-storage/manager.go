@@ -321,16 +321,23 @@ func (m *Manager) AddPiece(ctx context.Context, sector storage.SectorRef, existi
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	if err := m.index.StorageLock(ctx, sector.ID, storiface.FTNone, storiface.FTUnsealed); err != nil {
+	//Begin: modified by yankai for 扇区封装优化：各阶段的文件复制优化
+	if err := m.index.StorageLock(ctx, sector.ID, storiface.FTNone, storiface.FTSealed); err != nil {
+	//if err := m.index.StorageLock(ctx, sector.ID, storiface.FTNone, storiface.FTUnsealed); err != nil {
 		return abi.PieceInfo{}, xerrors.Errorf("acquiring sector lock: %w", err)
 	}
+	//End: modified by yankai for 扇区封装优化：各阶段的文件复制优化
 
 	var selector WorkerSelector
 	var err error
 	if len(existingPieces) == 0 { // new
-		selector = newAllocSelector(m.index, storiface.FTUnsealed, storiface.PathSealing)
+		//Begin: modified by yankai for 扇区封装优化：各阶段的文件复制优化
+		//selector = newAllocSelector(m.index, storiface.FTUnsealed, storiface.PathSealing)
+		selector = newAllocSelector(m.index, storiface.FTSealed, storiface.PathSealing)
 	} else { // use existing
-		selector = newExistingSelector(m.index, sector.ID, storiface.FTUnsealed, false)
+		selector = newExistingSelector(m.index, sector.ID, storiface.FTSealed, false)
+		//selector = newExistingSelector(m.index, sector.ID, storiface.FTUnsealed, false)
+		//End: modified by yankai for 扇区封装优化：各阶段的文件复制优化
 	}
 
 	//Begin: added by yankai
@@ -378,18 +385,23 @@ func (m *Manager) SealPreCommit1(ctx context.Context, sector storage.SectorRef, 
 		return out, waitErr
 	}
 
-	if err := m.index.StorageLock(ctx, sector.ID, storiface.FTUnsealed, storiface.FTSealed|storiface.FTCache); err != nil {
+	//Begin: modified by yankai for 扇区封装优化：各阶段的文件复制优化
+	if err := m.index.StorageLock(ctx, sector.ID, storiface.FTSealed, storiface.FTCache); err != nil {
+	//if err := m.index.StorageLock(ctx, sector.ID, storiface.FTUnsealed, storiface.FTSealed|storiface.FTCache); err != nil {
 		return nil, xerrors.Errorf("acquiring sector lock: %w", err)
 	}
 
 	// TODO: also consider where the unsealed data sits
-
-	selector := newAllocSelector(m.index, storiface.FTCache|storiface.FTSealed, storiface.PathSealing)
+	selector := newExistingSelector(m.index, sector.ID, storiface.FTCache|storiface.FTSealed, false)
+	//selector := newAllocSelector(m.index, storiface.FTCache|storiface.FTSealed, storiface.PathSealing)
+	//End: modified by yankai for 扇区封装优化：各阶段的文件复制优化
 
 	//Begin: added by yankai
 	log.Infof("PreCommit1 in Manager: Sector {%+v}; WorkID {%+v}; Wait {%+v}; OpenWindows {%+v}; SchedQueue {%+v}", sector, wk, wait, m.sched.openWindows, m.sched.schedQueue)
 	//End: added by yankai
-	err = m.sched.Schedule(ctx, sector, sealtasks.TTPreCommit1, selector, m.schedFetch(sector, storiface.FTUnsealed, storiface.PathSealing, storiface.AcquireMove), func(ctx context.Context, w Worker) error {
+	//Begin: modified by yankai for 扇区封装优化：各阶段的文件复制优化
+	err = m.sched.Schedule(ctx, sector, sealtasks.TTPreCommit1, selector, m.schedFetch(sector, storiface.FTSealed, storiface.PathSealing, storiface.AcquireMove), func(ctx context.Context, w Worker) error {
+	//err = m.sched.Schedule(ctx, sector, sealtasks.TTPreCommit1, selector, m.schedFetch(sector, storiface.FTUnsealed, storiface.PathSealing, storiface.AcquireMove), func(ctx context.Context, w Worker) error {
 		err := m.startWork(ctx, w, wk)(w.SealPreCommit1(ctx, sector, ticket, pieces))
 		if err != nil {
 			return err
@@ -398,6 +410,7 @@ func (m *Manager) SealPreCommit1(ctx context.Context, sector storage.SectorRef, 
 		waitRes()
 		return nil
 	})
+	//End: modified by yankai for 扇区封装优化：各阶段的文件复制优化
 	if err != nil {
 		return nil, err
 	}
@@ -436,7 +449,10 @@ func (m *Manager) SealPreCommit2(ctx context.Context, sector storage.SectorRef, 
 		return storage.SectorCids{}, xerrors.Errorf("acquiring sector lock: %w", err)
 	}
 
-	selector := newExistingSelector(m.index, sector.ID, storiface.FTCache|storiface.FTSealed, true)
+	//Begin: modified by yankai for 扇区封装优化：各阶段的文件复制优化
+	selector := newExistingSelector(m.index, sector.ID, storiface.FTCache|storiface.FTSealed, false)
+	//selector := newExistingSelector(m.index, sector.ID, storiface.FTCache|storiface.FTSealed, true)
+	//End: modified by yankai for 扇区封装优化：各阶段的文件复制优化
 
 	//Begin: added by yankai
 	log.Infof("PreCommit2 in Manager: Sector {%+v}; WorkID {%+v}; Wait {%+v}; OpenWindows {%+v}; SchedQueue {%+v}", sector, wk, wait, m.sched.openWindows, m.sched.schedQueue)
