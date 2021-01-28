@@ -430,7 +430,7 @@ func (sh *scheduler) trySched() {
 
 			//Begin: modified by yankai for 优化扇区封装流程，保证P1,P2和C1由同一主机处理（或Worker）
 			// 确保所有的task对应的窗口都在同一主机上
-			if sealtasks.TTCommit1 == task.taskType || sealtasks.TTPreCommit1 == task.taskType || sealtasks.TTPreCommit2 == task.taskType {
+			if sealtasks.TTAddPiece == task.taskType || sealtasks.TTCommit1 == task.taskType || sealtasks.TTPreCommit1 == task.taskType || sealtasks.TTPreCommit2 == task.taskType {
 				suitableWindows := make([]int, 0)
 				for _, wnd := range acceptableWindows[sqi] {
 					wid := sh.openWindows[wnd].worker

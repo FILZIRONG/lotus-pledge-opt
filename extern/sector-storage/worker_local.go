@@ -116,6 +116,13 @@ type localWorkerPathProvider struct {
 }
 
 func (l *localWorkerPathProvider) AcquireSector(ctx context.Context, sector storage.SectorRef, existing storiface.SectorFileType, allocate storiface.SectorFileType, sealing storiface.PathType) (storiface.SectorPaths, func(), error) {
+	// Begin: add by yankai for 测试
+	_, f1, l1, _ := runtime.Caller(1)
+	_, f2, l2, _ := runtime.Caller(2)
+	log.Infof("Acquire invoke tracking 1 f1: {%+v}; l1: {%v}", f1, l1)
+	log.Infof("Acquire invoke tracking 2 f2: {%+v}; l2: {%v}", f2, l2)
+	// End: add by yankai for 测试
+
 	paths, storageIDs, err := l.w.storage.AcquireSector(ctx, sector, existing, allocate, sealing, l.op)
 	if err != nil {
 		return storiface.SectorPaths{}, nil, err
@@ -304,12 +311,18 @@ func (l *LocalWorker) AddPiece(ctx context.Context, sector storage.SectorRef, ep
 		return storiface.UndefCall, err
 	}
 
+	//Begin: added by yankai
+	log.Infof("AddPiece in Worker: Sector {%+v}", sector)
+	//End: added by yankai
 	return l.asyncCall(ctx, sector, AddPiece, func(ctx context.Context, ci storiface.CallID) (interface{}, error) {
 		return sb.AddPiece(ctx, sector, epcs, sz, r)
 	})
 }
 
 func (l *LocalWorker) Fetch(ctx context.Context, sector storage.SectorRef, fileType storiface.SectorFileType, ptype storiface.PathType, am storiface.AcquireMode) (storiface.CallID, error) {
+	//Begin: added by yankai
+	log.Infof("Fetching in Worker: Sector {%+v}; SectorFileType {%+v}", sector, fileType)
+	//End: added by yankai
 	return l.asyncCall(ctx, sector, Fetch, func(ctx context.Context, ci storiface.CallID) (interface{}, error) {
 		_, done, err := (&localWorkerPathProvider{w: l, op: am}).AcquireSector(ctx, sector, fileType, storiface.FTNone, ptype)
 		if err == nil {

@@ -333,6 +333,9 @@ func (m *Manager) AddPiece(ctx context.Context, sector storage.SectorRef, existi
 		selector = newExistingSelector(m.index, sector.ID, storiface.FTUnsealed, false)
 	}
 
+	//Begin: added by yankai
+	log.Infof("AddPiece in Manager: Sector {%+v}; OpenWindows {%+v}; SchedQueue {%+v}", sector, m.sched.openWindows, m.sched.schedQueue)
+	//End: added by yankai
 	var out abi.PieceInfo
 	err = m.sched.Schedule(ctx, sector, sealtasks.TTAddPiece, selector, schedNop, func(ctx context.Context, w Worker) error {
 		p, err := m.waitSimpleCall(ctx)(w.AddPiece(ctx, sector, existingPieces, sz, r))

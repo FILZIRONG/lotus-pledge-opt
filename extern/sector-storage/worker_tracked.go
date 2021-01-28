@@ -132,10 +132,16 @@ func (t *trackedWorker) FinalizeSector(ctx context.Context, sector storage.Secto
 }
 
 func (t *trackedWorker) AddPiece(ctx context.Context, sector storage.SectorRef, pieceSizes []abi.UnpaddedPieceSize, newPieceSize abi.UnpaddedPieceSize, pieceData storage.Data) (storiface.CallID, error) {
+	//Begin: added by yankai
+	log.Infof("AddPiece in trackedWorker: Sector {%+v}; WorkerID {%+v}; Running {%+v}", sector, t.wid, t.tracker.running)
+	//End: added by yankai
 	return t.tracker.track(t.wid, sector, sealtasks.TTAddPiece)(t.Worker.AddPiece(ctx, sector, pieceSizes, newPieceSize, pieceData))
 }
 
 func (t *trackedWorker) Fetch(ctx context.Context, s storage.SectorRef, ft storiface.SectorFileType, ptype storiface.PathType, am storiface.AcquireMode) (storiface.CallID, error) {
+	//Begin: added by yankai
+	log.Infof("Fetching in trackedWorker: Sector {%+v}; WorkerID {%+v}; Running {%+v}; SectorFileType {%+v}", s, t.wid, t.tracker.running, ft)
+	//End: added by yankai
 	return t.tracker.track(t.wid, s, sealtasks.TTFetch)(t.Worker.Fetch(ctx, s, ft, ptype, am))
 }
 
