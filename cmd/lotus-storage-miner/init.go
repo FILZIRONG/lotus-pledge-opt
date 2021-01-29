@@ -469,6 +469,10 @@ func storageMinerInit(ctx context.Context, cctx *cli.Context, api lapi.FullNode,
 
 			m := storageminer.NewMiner(api, epp, a, slashfilter.New(mds), j)
 			{
+				//Begin: add by yankai for 支持miner分布式部署及WindowPost和WinningPost分离
+				os.Setenv("LOTUS_WDPOST", "true")
+				os.Setenv("LOTUS_WNPOST", "true")
+				//End: add by yankai for 支持miner分布式部署及WindowPost和WinningPost分离
 				if err := m.Start(ctx); err != nil {
 					return xerrors.Errorf("failed to start up genesis miner: %w", err)
 				}
