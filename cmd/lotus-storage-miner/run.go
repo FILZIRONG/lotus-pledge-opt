@@ -7,7 +7,9 @@ import (
 	_ "net/http/pprof"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
+	scServer "github.com/moran666666/sector-counter/server"
 
 	mux "github.com/gorilla/mux"
 	"github.com/multiformats/go-multiaddr"
@@ -36,6 +38,28 @@ var runCmd = &cli.Command{
 	Name:  "run",
 	Usage: "Start a lotus miner process",
 	Flags: []cli.Flag{
+		//Begin: add by yankai for 支持miner分布式部署及WindowPost和WinningPost分离
+		&cli.BoolFlag{
+			Name:  "wdpost",
+			Usage: "enable windowPoSt",
+			Value: true,
+		},
+		&cli.BoolFlag{
+			Name:  "wnpost",
+			Usage: "enable winningPoSt",
+			Value: true,
+		},
+		&cli.StringFlag{
+			Name:  "sctype",
+			Usage: "sector counter type(alloce,get)",
+			Value: "",
+		},
+		&cli.StringFlag{
+			Name:  "sclisten",
+			Usage: "host address and port the sector counter will listen on",
+			Value: "",
+		},
+		//End: add by yankai for 支持miner分布式部署及WindowPost和WinningPost分离
 		&cli.StringFlag{
 			Name:  "miner-api",
 			Usage: "2345",
@@ -56,6 +80,39 @@ var runCmd = &cli.Command{
 		},
 	},
 	Action: func(cctx *cli.Context) error {
+		//Begin: add by yankai for 支持miner分布式部署及WindowPost和WinningPost分离
+		if cctx.Bool("wdpost") {
+			os.Setenv("LOTUS_WDPOST", "true")
+		} else {
+			os.Unsetenv("LOTUS_WDPOST")
+		}
+
+		if cctx.Bool("wnpost") {
+			os.Setenv("LOTUS_WNPOST", "true")
+		} else {
+			os.Unsetenv("LOTUS_WNPOST")
+		}
+
+		scType := cctx.String("sctype")
+		if scType == "alloce" || scType == "get" {
+			os.Setenv("SC_TYPE", scType)
+
+			scListen := cctx.String("sclisten")
+			if scListen == "" {
+				log.Errorf("sclisten must be set")
+				return nil
+			}
+			os.Setenv("SC_LISTEN", scListen)
+
+			if scType == "alloce" {
+				scFilePath := filepath.Join(cctx.String(FlagMinerRepo), "sectorid")
+				go scServer.Run(scFilePath)
+			}
+		} else {
+			os.Unsetenv("SC_TYPE")
+		}
+		//End: add by yankai for 支持miner分布式部署及WindowPost和WinningPost分离
+
 		if !cctx.Bool("enable-gpu-proving") {
 			err := os.Setenv("BELLMAN_NO_GPU", "true")
 			if err != nil {

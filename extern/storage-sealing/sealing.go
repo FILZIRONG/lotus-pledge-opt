@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"math"
+	"os"
 	"sync"
 	"time"
 
@@ -29,6 +30,8 @@ import (
 	"github.com/filecoin-project/lotus/chain/actors/builtin/miner"
 	sectorstorage "github.com/filecoin-project/lotus/extern/sector-storage"
 	"github.com/filecoin-project/lotus/extern/sector-storage/ffiwrapper"
+
+	scClient "github.com/moran666666/sector-counter/client"
 )
 
 const SectorStorePrefix = "/sectors"
@@ -415,10 +418,26 @@ func (m *Sealing) newDealSector(ctx context.Context) (abi.SectorNumber, abi.Sect
 
 	// Now actually create a new sector
 
-	sid, err := m.sc.Next()
-	if err != nil {
-		return 0, 0, xerrors.Errorf("getting sector number: %w", err)
+	//Begin: modified by yankai for 支持miner分布式部署及WindowPost和WinningPost分离
+	var sid abi.SectorNumber
+	if _, ok := os.LookupEnv("SC_TYPE"); ok {
+		sid0, err := scClient.NewClient().GetSectorID(context.Background(), "")
+		if err != nil {
+			return 0, 0, xerrors.Errorf("getting sector number: %w", err)
+		}
+		sid = abi.SectorNumber(sid0)
+	} else {
+		sid0, err := m.sc.Next()
+		if err != nil {
+			return 0, 0, xerrors.Errorf("getting sector number: %w", err)
+		}
+		sid = sid0
 	}
+	//sid, err := m.sc.Next()
+	//if err != nil {
+	//	return 0, 0, xerrors.Errorf("getting sector number: %w", err)
+	//}
+	//End: modified by yankai for 支持miner分布式部署及WindowPost和WinningPost分离
 
 	err = m.sealer.NewSector(context.TODO(), m.minerSector(spt, sid))
 	if err != nil {

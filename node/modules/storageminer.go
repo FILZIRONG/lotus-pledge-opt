@@ -225,8 +225,15 @@ func StorageMiner(fc config.MinerFeeConfig) func(params StorageMinerParams) (*st
 
 		lc.Append(fx.Hook{
 			OnStart: func(context.Context) error {
-				go fps.Run(ctx)
+				//Begin: modified by yankai for 支持miner分布式部署及WindowPost和WinningPost分离
+				if _, ok := os.LookupEnv("LOTUS_WDPOST"); ok {
+					go fps.Run(ctx)
+				} else {
+					log.Warnf("This miner will be disable WindowPoSt")
+				}
+				//go fps.Run(ctx)
 				return sm.Run(ctx)
+				//End: modified by yankai for 支持miner分布式部署及WindowPost和WinningPost分离
 			},
 			OnStop: sm.Stop,
 		})

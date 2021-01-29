@@ -2,11 +2,14 @@ package sealing
 
 import (
 	"context"
+	"os"
 
 	"golang.org/x/xerrors"
 
 	"github.com/filecoin-project/go-state-types/abi"
 	"github.com/filecoin-project/specs-storage/storage"
+
+	scClient "github.com/moran666666/sector-counter/client"
 )
 
 func (m *Sealing) pledgeSector(ctx context.Context, sectorID storage.SectorRef, existingPieceSizes []abi.UnpaddedPieceSize, sizes ...abi.UnpaddedPieceSize) ([]abi.PieceInfo, error) {
@@ -60,11 +63,30 @@ func (m *Sealing) PledgeSector() error {
 			return
 		}
 
-		sid, err := m.sc.Next()
-		if err != nil {
-			log.Errorf("%+v", err)
-			return
+		//Begin: modified by yankai for 支持miner分布式部署及WindowPost和WinningPost分离
+		var sid abi.SectorNumber
+		if _, ok := os.LookupEnv("SC_TYPE"); ok {
+			sid0, err := scClient.NewClient().GetSectorID(context.Background(), "")
+			if err != nil {
+				log.Errorf("%+v", err)
+				return
+			}
+			sid = abi.SectorNumber(sid0)
+		} else {
+			sid0, err := m.sc.Next()
+			if err != nil {
+				log.Errorf("%+v", err)
+				return
+			}
+			sid = sid0
 		}
+		//sid, err := m.sc.Next()
+		//if err != nil {
+		//	log.Errorf("%+v", err)
+		//	return
+		//}
+		//End: modified by yankai for 支持miner分布式部署及WindowPost和WinningPost分离
+
 		sectorID := m.minerSector(spt, sid)
 		err = m.sealer.NewSector(ctx, sectorID)
 		if err != nil {
