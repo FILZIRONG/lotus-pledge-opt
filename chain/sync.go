@@ -1448,10 +1448,12 @@ func (syncer *Syncer) syncFork(ctx context.Context, incoming *types.TipSet, know
 	if err != nil {
 		return nil, xerrors.Errorf("failed to load next local tipset: %w", err)
 	}
+	//Begin: modified by yankai for 参考https://github.com/moran666666/lotus-1.4.0 优化
 	// Track the fork length on our side of the synced chain to enforce
 	// `ForkLengthThreshold`. Initialized to 1 because we already walked back
 	// one tipset from `known` (our synced head).
-	forkLengthInHead := 1
+	//forkLengthInHead := 1
+	//End: modified by yankai for 参考https://github.com/moran666666/lotus-1.4.0 优化
 
 	for cur := 0; cur < len(tips); {
 		if nts.Height() == 0 {
@@ -1470,10 +1472,12 @@ func (syncer *Syncer) syncFork(ctx context.Context, incoming *types.TipSet, know
 		} else {
 			// Walk back one block in our synced chain to try to meet the fork's
 			// height.
-			forkLengthInHead++
-			if forkLengthInHead > int(build.ForkLengthThreshold) {
-				return nil, ErrForkTooLong
-			}
+			//Begin: modified by yankai for 参考https://github.com/moran666666/lotus-1.4.0 优化
+			//forkLengthInHead++
+			//if forkLengthInHead > int(build.ForkLengthThreshold) {
+			//	return nil, ErrForkTooLong
+			//}
+			//End: modified by yankai for 参考https://github.com/moran666666/lotus-1.4.0 优化
 
 			// We will be forking away from nts, check that it isn't checkpointed
 			if nts.Key() == chkpt {

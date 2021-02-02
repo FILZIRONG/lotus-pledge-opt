@@ -85,24 +85,52 @@ var sealingWorkersCmd = &cli.Command{
 
 			var barCols = uint64(64)
 			cpuBars := int(stat.CpuUse * barCols / stat.Info.Resources.CPUs)
-			cpuBar := strings.Repeat("|", cpuBars) + strings.Repeat(" ", int(barCols)-cpuBars)
+			// Begin: modified by yankai for 参考https://github.com/moran666666/lotus-1.4.0 优化
+			cpuBar := ""
+			if int(barCols)-cpuBars > 0 {
+				cpuBar = strings.Repeat("|", cpuBars) + strings.Repeat(" ", int(barCols)-cpuBars)
+			} else {
+				cpuBar = strings.Repeat("|", int(barCols))
+			}
+			// cpuBar := strings.Repeat("|", cpuBars) + strings.Repeat(" ", int(barCols)-cpuBars)
+			// End: modified by yankai for 参考https://github.com/moran666666/lotus-1.4.0 优化
 
 			fmt.Printf("\tCPU:  [%s] %d/%d core(s) in use\n",
 				color.GreenString(cpuBar), stat.CpuUse, stat.Info.Resources.CPUs)
 
 			ramBarsRes := int(stat.Info.Resources.MemReserved * barCols / stat.Info.Resources.MemPhysical)
 			ramBarsUsed := int(stat.MemUsedMin * barCols / stat.Info.Resources.MemPhysical)
-			ramBar := color.YellowString(strings.Repeat("|", ramBarsRes)) +
-				color.GreenString(strings.Repeat("|", ramBarsUsed)) +
-				strings.Repeat(" ", int(barCols)-ramBarsUsed-ramBarsRes)
+			// Begin: modified by yankai for 参考https://github.com/moran666666/lotus-1.4.0 优化
+			ramBar := ""
+			if int(barCols)-ramBarsUsed-ramBarsRes > 0 {
+				ramBar = color.YellowString(strings.Repeat("|", ramBarsRes)) +
+					color.GreenString(strings.Repeat("|", ramBarsUsed)) +
+					strings.Repeat(" ", int(barCols)-ramBarsUsed-ramBarsRes)
+			} else {
+				ramBar = strings.Repeat("|", int(barCols))
+			}
+			//ramBar := color.YellowString(strings.Repeat("|", ramBarsRes)) +
+			//	color.GreenString(strings.Repeat("|", ramBarsUsed)) +
+			//	strings.Repeat(" ", int(barCols)-ramBarsUsed-ramBarsRes)
+			// End: modified by yankai for 参考https://github.com/moran666666/lotus-1.4.0 优化
 
 			vmem := stat.Info.Resources.MemPhysical + stat.Info.Resources.MemSwap
 
 			vmemBarsRes := int(stat.Info.Resources.MemReserved * barCols / vmem)
 			vmemBarsUsed := int(stat.MemUsedMax * barCols / vmem)
-			vmemBar := color.YellowString(strings.Repeat("|", vmemBarsRes)) +
-				color.GreenString(strings.Repeat("|", vmemBarsUsed)) +
-				strings.Repeat(" ", int(barCols)-vmemBarsUsed-vmemBarsRes)
+			// Begin: modified by yankai for 参考https://github.com/moran666666/lotus-1.4.0 优化
+			vmemBar := ""
+			if int(barCols)-vmemBarsUsed-vmemBarsRes > 0 {
+				vmemBar = color.YellowString(strings.Repeat("|", vmemBarsRes)) +
+					color.GreenString(strings.Repeat("|", vmemBarsUsed)) +
+					strings.Repeat(" ", int(barCols)-vmemBarsUsed-vmemBarsRes)
+			} else {
+				vmemBar = strings.Repeat("|", int(barCols))
+			}
+			//vmemBar := color.YellowString(strings.Repeat("|", vmemBarsRes)) +
+			//	color.GreenString(strings.Repeat("|", vmemBarsUsed)) +
+			//	strings.Repeat(" ", int(barCols)-vmemBarsUsed-vmemBarsRes)
+			// End: modified by yankai for 参考https://github.com/moran666666/lotus-1.4.0 优化
 
 			fmt.Printf("\tRAM:  [%s] %d%% %s/%s\n", ramBar,
 				(stat.Info.Resources.MemReserved+stat.MemUsedMin)*100/stat.Info.Resources.MemPhysical,
