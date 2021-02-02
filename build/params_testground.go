@@ -97,14 +97,11 @@ var (
 		0: DrandMainnet,
 	}
 
-	NewestNetworkVersion       = network.Version9
+	NewestNetworkVersion       = network.Version8
 	ActorUpgradeNetworkVersion = network.Version4
 
 	Devnet      = true
 	ZeroAddress = MustParseAddress("f3yaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaby2smx7a")
-
-	BootstrappersFile = ""
-	GenesisFile       = ""
 )
 
 const BootstrapPeerThreshold = 1

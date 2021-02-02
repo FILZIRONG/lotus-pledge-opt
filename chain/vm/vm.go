@@ -43,11 +43,9 @@ import (
 
 const MaxCallDepth = 4096
 
-var (
-	log            = logging.Logger("vm")
-	actorLog       = logging.Logger("actors")
-	gasOnActorExec = newGasCharge("OnActorExec", 0, 0)
-)
+var log = logging.Logger("vm")
+var actorLog = logging.Logger("actors")
+var gasOnActorExec = newGasCharge("OnActorExec", 0, 0)
 
 // stat counters
 var (
@@ -74,10 +72,8 @@ func ResolveToKeyAddr(state types.StateTree, cst cbor.IpldStore, addr address.Ad
 	return aast.PubkeyAddress()
 }
 
-var (
-	_ cbor.IpldBlockstore = (*gasChargingBlocks)(nil)
-	_ blockstore.Viewer   = (*gasChargingBlocks)(nil)
-)
+var _ cbor.IpldBlockstore = (*gasChargingBlocks)(nil)
+var _ blockstore.Viewer = (*gasChargingBlocks)(nil)
 
 type gasChargingBlocks struct {
 	chargeGas func(GasCharge)
@@ -198,11 +194,9 @@ func (vm *UnsafeVM) MakeRuntime(ctx context.Context, msg *types.Message) *Runtim
 	return vm.VM.makeRuntime(ctx, msg, nil)
 }
 
-type (
-	CircSupplyCalculator func(context.Context, abi.ChainEpoch, *state.StateTree) (abi.TokenAmount, error)
-	NtwkVersionGetter    func(context.Context, abi.ChainEpoch) network.Version
-	LookbackStateGetter  func(context.Context, abi.ChainEpoch) (*state.StateTree, error)
-)
+type CircSupplyCalculator func(context.Context, abi.ChainEpoch, *state.StateTree) (abi.TokenAmount, error)
+type NtwkVersionGetter func(context.Context, abi.ChainEpoch) network.Version
+type LookbackStateGetter func(context.Context, abi.ChainEpoch) (*state.StateTree, error)
 
 type VM struct {
 	cstate         *state.StateTree
@@ -271,6 +265,7 @@ type ApplyRet struct {
 
 func (vm *VM) send(ctx context.Context, msg *types.Message, parent *Runtime,
 	gasCharge *GasCharge, start time.Time) ([]byte, aerrors.ActorError, *Runtime) {
+
 	defer atomic.AddUint64(&StatSends, 1)
 
 	st := vm.cstate
@@ -568,7 +563,7 @@ func (vm *VM) ApplyMessage(ctx context.Context, cmsg types.ChainMsg) (*ApplyRet,
 		gasUsed = 0
 	}
 
-	burn, err := vm.ShouldBurn(st, msg, errcode)
+	burn, err := vm.shouldBurn(st, msg, errcode)
 	if err != nil {
 		return nil, xerrors.Errorf("deciding whether should burn failed: %w", err)
 	}
@@ -611,7 +606,7 @@ func (vm *VM) ApplyMessage(ctx context.Context, cmsg types.ChainMsg) (*ApplyRet,
 	}, nil
 }
 
-func (vm *VM) ShouldBurn(st *state.StateTree, msg *types.Message, errcode exitcode.ExitCode) (bool, error) {
+func (vm *VM) shouldBurn(st *state.StateTree, msg *types.Message, errcode exitcode.ExitCode) (bool, error) {
 	// Check to see if we should burn funds. We avoid burning on successful
 	// window post. This won't catch _indirect_ window post calls, but this
 	// is the best we can get for now.
@@ -742,7 +737,7 @@ func Copy(ctx context.Context, from, to blockstore.Blockstore, root cid.Cid) err
 		close(freeBufs)
 	}()
 
-	batch := <-freeBufs
+	var batch = <-freeBufs
 	batchCp := func(blk block.Block) error {
 		numBlocks++
 		totalCopySize += len(blk.RawData())

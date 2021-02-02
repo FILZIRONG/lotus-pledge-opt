@@ -56,11 +56,7 @@ func (s *server) HandleStream(stream inet.Stream) {
 	}
 
 	_ = stream.SetDeadline(time.Now().Add(WriteResDeadline))
-	buffered := bufio.NewWriter(stream)
-	if err = cborutil.WriteCborRPC(buffered, resp); err == nil {
-		err = buffered.Flush()
-	}
-	if err != nil {
+	if err := cborutil.WriteCborRPC(stream, resp); err != nil {
 		_ = stream.SetDeadline(time.Time{})
 		log.Warnw("failed to write back response for handle stream",
 			"err", err, "peer", stream.Conn().RemotePeer())

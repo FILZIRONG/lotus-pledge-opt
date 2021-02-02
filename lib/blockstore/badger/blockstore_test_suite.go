@@ -183,8 +183,6 @@ func (s *Suite) TestAllKeysRespectsContext(t *testing.T) {
 	require.True(t, ok)
 
 	cancel()
-	// pull one value out to avoid race
-	_, _ = <-ch
 
 	v, ok = <-ch
 	require.Equal(t, cid.Undef, v)

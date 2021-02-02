@@ -103,10 +103,6 @@ type SectorInfo struct {
 	// Recovery
 	Return ReturnState
 
-	// Termination
-	TerminateMessage *cid.Cid
-	TerminatedAt     abi.ChainEpoch
-
 	// Debug
 	LastErr string
 

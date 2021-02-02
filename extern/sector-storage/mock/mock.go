@@ -347,7 +347,7 @@ func generateFakePoSt(sectorInfo []proof2.SectorInfo, rpt func(abi.RegisteredSea
 }
 
 func (mgr *SectorMgr) ReadPiece(ctx context.Context, w io.Writer, sectorID storage.SectorRef, offset storiface.UnpaddedByteIndex, size abi.UnpaddedPieceSize, randomness abi.SealRandomness, c cid.Cid) error {
-	if offset != 0 {
+	if len(mgr.sectors[sectorID.ID].pieces) > 1 || offset != 0 {
 		panic("implme")
 	}
 

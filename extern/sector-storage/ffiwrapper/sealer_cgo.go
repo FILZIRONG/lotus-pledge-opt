@@ -5,9 +5,14 @@ package ffiwrapper
 import (
 	"bufio"
 	"bytes"
+	"compress/gzip"
 	"context"
+	"encoding/json"
+	"fmt"
 	"io"
+	"io/ioutil"
 	"math/bits"
+	"net/http"
 	"os"
 	"runtime"
 
@@ -45,10 +50,6 @@ func (sb *Sealer) NewSector(ctx context.Context, sector storage.SectorRef) error
 }
 
 func (sb *Sealer) AddPiece(ctx context.Context, sector storage.SectorRef, existingPieceSizes []abi.UnpaddedPieceSize, pieceSize abi.UnpaddedPieceSize, file storage.Data) (abi.PieceInfo, error) {
-	// TODO: allow tuning those:
-	chunk := abi.PaddedPieceSize(4 << 20)
-	parallel := runtime.NumCPU()
-
 	var offset abi.UnpaddedPieceSize
 	for _, size := range existingPieceSizes {
 		offset += size
@@ -115,16 +116,10 @@ func (sb *Sealer) AddPiece(ctx context.Context, sector storage.SectorRef, existi
 
 	pr := io.TeeReader(io.LimitReader(file, int64(pieceSize)), pw)
 
-	throttle := make(chan []byte, parallel)
-	piecePromises := make([]func() (abi.PieceInfo, error), 0)
+	chunk := abi.PaddedPieceSize(4 << 20)
 
 	buf := make([]byte, chunk.Unpadded())
-	for i := 0; i < parallel; i++ {
-		if abi.UnpaddedPieceSize(i)*chunk.Unpadded() >= pieceSize {
-			break // won't use this many buffers
-		}
-		throttle <- make([]byte, chunk.Unpadded())
-	}
+	var pieceCids []abi.PieceInfo
 
 	for {
 		var read int
@@ -145,39 +140,13 @@ func (sb *Sealer) AddPiece(ctx context.Context, sector storage.SectorRef, existi
 			break
 		}
 
-		done := make(chan struct {
-			cid.Cid
-			error
-		}, 1)
-		pbuf := <-throttle
-		copy(pbuf, buf[:read])
-
-		go func(read int) {
-			defer func() {
-				throttle <- pbuf
-			}()
-
-			c, err := sb.pieceCid(sector.ProofType, pbuf[:read])
-			done <- struct {
-				cid.Cid
-				error
-			}{c, err}
-		}(read)
-
-		piecePromises = append(piecePromises, func() (abi.PieceInfo, error) {
-			select {
-			case e := <-done:
-				if e.error != nil {
-					return abi.PieceInfo{}, e.error
-				}
-
-				return abi.PieceInfo{
-					Size:     abi.UnpaddedPieceSize(len(buf[:read])).Padded(),
-					PieceCID: e.Cid,
-				}, nil
-			case <-ctx.Done():
-				return abi.PieceInfo{}, ctx.Err()
-			}
+		c, err := sb.pieceCid(sector.ProofType, buf[:read])
+		if err != nil {
+			return abi.PieceInfo{}, xerrors.Errorf("pieceCid error: %w", err)
+		}
+		pieceCids = append(pieceCids, abi.PieceInfo{
+			Size:     abi.UnpaddedPieceSize(len(buf[:read])).Padded(),
+			PieceCID: c,
 		})
 	}
 
@@ -194,16 +163,8 @@ func (sb *Sealer) AddPiece(ctx context.Context, sector storage.SectorRef, existi
 	}
 	stagedFile = nil
 
-	if len(piecePromises) == 1 {
-		return piecePromises[0]()
-	}
-
-	pieceCids := make([]abi.PieceInfo, len(piecePromises))
-	for i, promise := range piecePromises {
-		pieceCids[i], err = promise()
-		if err != nil {
-			return abi.PieceInfo{}, err
-		}
+	if len(pieceCids) == 1 {
+		return pieceCids[0], nil
 	}
 
 	pieceCID, err := ffi.GenerateUnsealedCID(sector.ProofType, pieceCids)
@@ -579,6 +540,10 @@ func (sb *Sealer) SealCommit1(ctx context.Context, sector storage.SectorRef, tic
 }
 
 func (sb *Sealer) SealCommit2(ctx context.Context, sector storage.SectorRef, phase1Out storage.Commit1Out) (storage.Proof, error) {
+	if c2Address, ok := os.LookupEnv("C2_ADDRESS"); ok {
+		log.Warnf("Sector %d do the extern commit2 task ......", sector.ID.Number)
+		return RequestCommit2(sector.ID, phase1Out, c2Address)
+	}
 	return ffi.SealCommitPhase2(phase1Out, sector.ID.Number, sector.ID.Miner)
 }
 
@@ -731,4 +696,76 @@ func GenerateUnsealedCID(proofType abi.RegisteredSealProof, pieces []abi.PieceIn
 	}
 
 	return ffi.GenerateUnsealedCID(proofType, allPieces)
+}
+
+type Commit2Request struct {
+	SectorID   abi.SectorID
+	Commit1Out storage.Commit1Out
+}
+type Commit2Response struct {
+	SectorID abi.SectorID
+	Proof    storage.Proof
+}
+
+func RequestCommit2(sector abi.SectorID, phase1Out storage.Commit1Out, c2Address string) (storage.Proof, error) {
+	request := Commit2Request{}
+	request.SectorID = abi.SectorID{
+		Miner:  abi.ActorID(sector.Miner),
+		Number: abi.SectorNumber(sector.Number),
+	}
+	request.Commit1Out = phase1Out
+
+	b, err := json.Marshal(request)
+	if err != nil {
+		log.Errorf("json format error: %+v", err)
+		return nil, err
+	}
+
+	zBuf := new(bytes.Buffer)
+	zw := gzip.NewWriter(zBuf)
+	if _, err = zw.Write(b); err != nil {
+		log.Errorf("commit2 gzip failed, error: %+v", err)
+	}
+
+	zw.Flush()
+	zw.Close()
+
+	req, err := http.NewRequest("POST", fmt.Sprintf("http://%s/proxy/commit2", c2Address), zBuf)
+	if err != nil {
+		log.Errorf("http new request err: %+v", err)
+		return nil, err
+	}
+
+	req.Header.Set("Content-Type", "application/json;charset=utf-8")
+	req.Header.Set("Content-Encoding", "gzip")
+
+	log.Info("Send commit2 task to extern server and wait for response ......")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Error("do request err: ", err)
+		return nil, err
+	}
+
+	if resp.StatusCode != 200 {
+		log.Errorf("http client do code: %d err: %+v", resp.StatusCode, err)
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	result, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Errorf("ioutil read all err: %+v", err)
+		return nil, err
+	}
+
+	response := Commit2Response{}
+	err = json.Unmarshal(result, &response)
+	if err != nil {
+		log.Errorf("json format len: %d error: %+v", len(result), err)
+		return nil, err
+	}
+
+	log.Info("Receive commit2 result success......")
+
+	return response.Proof, nil
 }

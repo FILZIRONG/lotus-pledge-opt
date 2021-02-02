@@ -1617,7 +1617,7 @@ func parseParamsForMethod(act cid.Cid, method uint64, args []string) ([]byte, er
 		return nil, fmt.Errorf("unknown method %d for actor %s", method, act)
 	}
 
-	paramObj := methodMeta.Params.Elem()
+	paramObj := methodMeta.Params
 	if paramObj.NumField() != len(args) {
 		return nil, fmt.Errorf("not enough arguments given to call that method (expecting %d)", paramObj.NumField())
 	}
